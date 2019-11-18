@@ -1,0 +1,8 @@
+# Default ignored files
+/workspace.xml
+/inspectionProfiles/*
+misc.xml
+modules.xml
+mujoco_marl.iml
+other.xml
+vcs.xml
