@@ -5,7 +5,10 @@ from collections import OrderedDict
 def convert_action(a):
     action = OrderedDict([])
 
-    for k in a:
-        action[k] = np.array(a[k])
+    for k in a[0]:
+        temp = []
+        for agent in a:
+            temp.append(agent[k])
+        action[k] = np.array(temp)
 
     return action

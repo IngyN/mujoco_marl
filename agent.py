@@ -7,17 +7,21 @@ from rl.processors import WhiteningNormalizerProcessor
 from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
+from collections import OrderedDict
 
-def get_agent(env):
+observation_size = 0
+
+def get_agent(env,agent_id):
+    global observation_size
     # Count number of actions
     nb_actions = env.action_space['action_movement'][0].shape[0]+2
     # Count number of observations for input
-    observation_size = 0
-    observation_size+=env.observation_space['observation_self'].shape[0]
-    observation_size+=env.observation_space['agent_qpos_qvel'].shape[0]*env.observation_space['agent_qpos_qvel'].shape[1]
-    observation_size+=env.observation_space['box_obs'].shape[0]*env.observation_space['box_obs'].shape[1]
-    observation_size+=env.observation_space['ramp_obs'].shape[0]*env.observation_space['ramp_obs'].shape[1]
-    #TODO: Not sure whether to include mask_a*_obs and mask_ab_obs_spoof in this observation input -AH
+    if observation_size == 0:
+        observation_size+=env.observation_space['observation_self'].shape[0]
+        observation_size+=env.observation_space['agent_qpos_qvel'].shape[0]*env.observation_space['agent_qpos_qvel'].shape[1]
+        observation_size+=env.observation_space['box_obs'].shape[0]*env.observation_space['box_obs'].shape[1]
+        observation_size+=env.observation_space['ramp_obs'].shape[0]*env.observation_space['ramp_obs'].shape[1]
+        #TODO: Not sure whether to include mask_a*_obs and mask_ab_obs_spoof in this observation input -AH
 
     # Build the actor model
     actor = Sequential()
@@ -50,14 +54,27 @@ def get_agent(env):
     agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
                       memory=memory, nb_steps_warmup_critic=1000, nb_steps_warmup_actor=1000,
                       random_process=random_process, gamma=.99, target_model_update=1e-3,
-                      processor=MujocoProcessor())
+                      processor=MujocoProcessor(agent_id))
     agent.compile([Adam(lr=1e-4), Adam(lr=1e-3)], metrics=['mae'])
     return agent
 
-class MujocoProcessor():
+class MujocoProcessor(WhiteningNormalizerProcessor):
+    def __init__(self,agent_id):
+        self.normalizer = None
+        self.agent_id = agent_id
     def process_action(self, action):
-        return action
-    def process_state_batch(self,batch):
-        print(batch) #TODO: Not sure what to do in this function -AH
-        return batch
+        temp = []
+        for a in action:
+            temp.append(int(a))
+        output = OrderedDict([])
+        output['action_movement'] = np.array(temp[0:3])
+        output['action_pull'] = np.array(temp[3])
+        output['action_glueall'] = np.array(temp[4])
+        return output
+    def process_observation(self,observation):
+        obs = observation['observation_self'][self.agent_id]
+        obs = np.append(obs,observation['agent_qpos_qvel'][self.agent_id].flatten())
+        obs = np.append(obs,observation['box_obs'][self.agent_id].flatten())
+        obs = np.append(obs,observation['ramp_obs'][self.agent_id].flatten())
+        return obs
 

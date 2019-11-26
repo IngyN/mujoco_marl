@@ -1,6 +1,8 @@
 from mae_envs.envs import hide_and_seek
 from util import convert_action
 from agent import get_agent
+from copy import deepcopy
+import numpy as np
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 
@@ -22,18 +24,42 @@ trackStatW = hide_and_seek.TrackStatWrapper(env, boxes, ramps, food)
 env.seed(42)
 env.reset()
 
-agent = get_agent(env)
+agents = []
+for i in range(hiders+seekers):
+    agents.append(get_agent(env,i))
+
+#https://github.com/keras-rl/keras-rl/blob/master/rl/core.py
+obs = None
+rew = None
+done = None
+info = None
+agent_obs = [[]]*(hiders+seekers)
+agent_act = [[]]*(hiders+seekers)
+env.render()
+for a in agents:
+    a.training = True
 
 for t in range(1000):
-    env.render()
-    print(agent.forward(env))
-    a = env.action_space.sample()  # still need to figure out action format.
-    action = convert_action(a)
+    if obs is None:
+        obs = deepcopy(env.reset())
+        rew = np.float32(0)
+        for i in range(hiders+seekers):
+            agent_obs[i] = agents[i].processor.process_observation(obs)
+    for i in range(hiders+seekers):
+        action_i = agents[i].forward(agent_obs[i])
+        agent_act[i] = agents[i].processor.process_action(action_i)
+        done = False
+    #a = env.action_space.sample()  # still need to figure out action format.
+    action = convert_action(agent_act)
     obs, rew, done, info = env.step(action)  # take a random action + return current state, reward + if episode is done.
-    break
+    obs = deepcopy(obs)
     if done:
-        print("Episode finished after {} timesteps".format(t + 1))
+        for i in range(hiders+seekers):
+            agents[i].forward(agent_obs[i])
+            agents[i].backward(0., terminal=False)
         break
+    for i in range(hiders+seekers):
+        metrics = agents[i].backward(rew[i], terminal=done)
 
 env.close()
 
