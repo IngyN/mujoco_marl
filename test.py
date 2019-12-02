@@ -14,11 +14,13 @@ ramps = 1
 food = 0
 rooms = 2
 
+display = True
+
 env = hide_and_seek.make_env(n_hiders=hiders, n_seekers=seekers, n_boxes=boxes, n_ramps=ramps, n_food=food, n_rooms=rooms)
 
-# probably shouldn't use those two. but was testing.
-rewardWrapper = hide_and_seek.HideAndSeekRewardWrapper(env, n_hiders=hiders, n_seekers=seekers)
-trackStatW = hide_and_seek.TrackStatWrapper(env, boxes, ramps, food)
+# # probably shouldn't use those two. but was testing.
+# rewardWrapper = hide_and_seek.HideAndSeekRewardWrapper(env, n_hiders=hiders, n_seekers=seekers)
+# trackStatW = hide_and_seek.TrackStatWrapper(env, boxes, ramps, food)
 
 # run one episode
 env.seed(42)
@@ -39,7 +41,7 @@ env.render()
 for a in agents:
     a.training = True
 
-for t in range(1000):
+for t in range(5000):
     if obs is None:
         obs = deepcopy(env.reset())
         rew = np.float32(0)
@@ -52,8 +54,11 @@ for t in range(1000):
     #a = env.action_space.sample()  # still need to figure out action format.
     action = convert_action(agent_act)
     obs, rew, done, info = env.step(action)  # take a random action + return current state, reward + if episode is done.
+    if display:
+        env.render()
     obs = deepcopy(obs)
     if done:
+        print("done")
         for i in range(hiders+seekers):
             agents[i].forward(agent_obs[i])
             agents[i].backward(0., terminal=False)
