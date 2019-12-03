@@ -47,7 +47,7 @@ def get_agent(env,agent_id):
     actor.add(Dense(300))
     actor.add(Activation('relu'))
     actor.add(Dense(nb_actions))
-    actor.add(Activation('tanh'))
+    actor.add(Activation('sigmoid')) # Return values from 0 to 1
     #print(actor.summary())
 
     # Build the critic model
@@ -66,7 +66,7 @@ def get_agent(env,agent_id):
 
     # Build the agent
     memory = SequentialMemory(limit=100000, window_length=1)
-    random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=5.15, mu=0, sigma=6)
+    random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0, sigma=.1)
     agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
                       memory=memory, nb_steps_warmup_critic=4000, nb_steps_warmup_actor=4000,
                       random_process=random_process, gamma=.9, target_model_update=1e-3,
@@ -81,8 +81,13 @@ class MujocoProcessor(WhiteningNormalizerProcessor):
 
     def process_action(self, action):
         temp = []
-        for a in action:
-            temp.append(int(a))
+        temp.append(int(np.clip(action[0],0,1)*10))
+        temp.append(int(np.clip(action[1],0,1)*10))
+        temp.append(int(np.clip(action[2],0,1)*10))
+        temp.append(int(np.clip(action[3],0,1)))
+        temp.append(int(np.clip(action[4],0,1)))
+        #for a in action:
+        #    temp.append(int(a))
         output = OrderedDict([])
         output['action_movement'] = np.array(temp[0:3])
         output['action_pull'] = np.array(temp[3])
