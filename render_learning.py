@@ -21,7 +21,7 @@ save_weights = False
 debug = False
 
 env = hide_and_seek.make_env(n_hiders=hiders, n_seekers=seekers, n_boxes=boxes, n_ramps=ramps, n_food=food,
-                             n_rooms=rooms, n_lidar_per_agent=20, visualize_lidar=True)
+                             n_rooms=rooms, n_lidar_per_agent=30, visualize_lidar=True)
 
 # # probably shouldn't use those two. but was testing.
 # rewardWrapper = hide_and_seek.HideAndSeekRewardWrapper(env, n_hiders=hiders, n_seekers=seekers)
@@ -42,6 +42,8 @@ agent_obs = [[]] * (hiders + seekers)
 agent_act = [[]] * (hiders + seekers)
 time_steps = 80
 episodes = 25
+interval = 5
+
 for a in agents:
     a.training = True
 
@@ -67,6 +69,10 @@ for a in agents:
 for e in range(episodes):
     if e > 0.9 * episodes and debug:
         display = True
+
+    if e % interval == 0 and e != 0:
+        print('avg rew: ', np.sum(acc_rew[:, (e - interval): e], axis=1) / interval)
+        # print('acc_rew: ', acc_rew[:, (e - interval): e])
 
     for t in range(time_steps):
         if obs is None:
@@ -94,7 +100,7 @@ for e in range(episodes):
         for i in range(hiders + seekers):
             # metrics = agents[i].backward(rew[i], terminal=done)
             agent_obs[i] = agents[i].processor.process_observation(obs)
-            acc_rew[i][e * t] = rew[i]
+            acc_rew[i][e] += rew[i]
 
 env.close()
-print(np.sum(acc_rew, axis=1))
+# print(np.sum(acc_rew, axis=1))

@@ -131,13 +131,20 @@ class MujocoProcessor(WhiteningNormalizerProcessor):
         self.normalizer = None
         self.agent_id = agent_id
 
-    def process_action(self, action):
+    def process_action(self, action, model=1):
         temp = []
-        temp.append(int(np.clip(action[0],0,1)*10))
-        temp.append(int(np.clip(action[1],0,1)*10))
-        temp.append(int(np.clip(action[2],0,1)*10))
-        temp.append(int(np.clip(action[3],0,1)))
-        temp.append(int(np.clip(action[4],0,1)))
+        if model == 1:
+            temp.append(int(np.clip(action[0], 0, 1) * 10))
+            temp.append(int(np.clip(action[1], 0, 1) * 10))
+            temp.append(int(np.clip(action[2], 0, 1) * 10))
+            temp.append(int(np.clip(action[3], 0, 1)))
+            temp.append(int(np.clip(action[4], 0, 1)))
+        elif model == 2:
+            temp.append(int(np.clip(action[0], -1, 1) * 10))
+            temp.append(int(np.clip(action[1], -1, 1) * 10))
+            temp.append(int(np.clip(action[2], -1, 1) * 10))
+            temp.append(int(np.clip(action[3], 0, 1)))
+            temp.append(int(np.clip(action[4], 0, 1)))
         #for a in action:
         #    temp.append(int(a))
         output = OrderedDict([])

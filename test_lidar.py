@@ -16,8 +16,8 @@ food = 0
 rooms = 2
 
 display = False
-load_weights = False
-save_weights = True
+load_weights = True
+save_weights = False
 debug = False
 
 env = hide_and_seek.make_env(n_hiders=hiders, n_seekers=seekers, n_boxes=boxes, n_ramps=ramps, n_food=food,
@@ -42,11 +42,12 @@ agent_obs = [[]] * (hiders + seekers)
 agent_act = [[]] * (hiders + seekers)
 time_steps = 80
 episodes = 2000
+interval = 500
 
 for a in agents:
     a.training = True
 
-acc_rew = np.zeros([hiders + seekers, time_steps * episodes])
+acc_rew = np.zeros([hiders + seekers, episodes])
 
 for i in range(hiders + seekers):
     agents.append(get_agent(env, i, model=2))
@@ -68,6 +69,9 @@ for a in agents:
 for e in range(episodes):
     if e > 0.9 * episodes and debug:
         display = True
+    if e % interval == 0 and e != 0:
+        print('avg rew: ', np.sum(acc_rew[:, (e - interval): e], axis=1) / interval)
+        # print('acc_rew: ', acc_rew[:, (e - interval): e])
 
     for t in range(time_steps):
         if obs is None:
@@ -95,10 +99,9 @@ for e in range(episodes):
         for i in range(hiders + seekers):
             metrics = agents[i].backward(rew[i], terminal=done)
             agent_obs[i] = agents[i].processor.process_observation(obs)
-            acc_rew[i][e * t] = rew[i]
+            acc_rew[i][e] += rew[i]
 
 env.close()
-print(np.sum(acc_rew, axis=1))
 
 if save_weights:
     for i, a in enumerate(agents):
