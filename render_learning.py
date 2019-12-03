@@ -15,13 +15,13 @@ ramps = 1
 food = 0
 rooms = 2
 
-display = False
-load_weights = False
-save_weights = True
+display = True
+load_weights = True
+save_weights = False
 debug = False
 
 env = hide_and_seek.make_env(n_hiders=hiders, n_seekers=seekers, n_boxes=boxes, n_ramps=ramps, n_food=food,
-                             n_rooms=rooms, n_lidar_per_agent=30, visualize_lidar=True)
+                             n_rooms=rooms, n_lidar_per_agent=20, visualize_lidar=True)
 
 # # probably shouldn't use those two. but was testing.
 # rewardWrapper = hide_and_seek.HideAndSeekRewardWrapper(env, n_hiders=hiders, n_seekers=seekers)
@@ -41,8 +41,7 @@ info = None
 agent_obs = [[]] * (hiders + seekers)
 agent_act = [[]] * (hiders + seekers)
 time_steps = 80
-episodes = 2000
-
+episodes = 25
 for a in agents:
     a.training = True
 
@@ -88,18 +87,14 @@ for e in range(episodes):
             print("done step :", t, " episode: ", e)
             for i in range(hiders + seekers):
                 agents[i].forward(agent_obs[i])
-                agents[i].backward(0., terminal=False)
+                # agents[i].backward(0., terminal=False)
 
             obs = None
             break
         for i in range(hiders + seekers):
-            metrics = agents[i].backward(rew[i], terminal=done)
+            # metrics = agents[i].backward(rew[i], terminal=done)
             agent_obs[i] = agents[i].processor.process_observation(obs)
             acc_rew[i][e * t] = rew[i]
 
 env.close()
 print(np.sum(acc_rew, axis=1))
-
-if save_weights:
-    for i, a in enumerate(agents):
-        a.save_weights("agent_%i_weights.h5f" % (i), overwrite=True)
