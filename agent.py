@@ -1,7 +1,8 @@
 import numpy as np
 import gym
+import keras.backend
 from keras.models import Sequential, Model
-from keras.layers import Dense, Activation, Flatten, Input, Concatenate
+from keras.layers import Dense, Activation, Flatten, Input, Concatenate, Dropout, Multiply, Add, Lambda
 from keras.optimizers import Adam
 from rl.processors import WhiteningNormalizerProcessor
 from rl.agents import DDPGAgent
@@ -26,10 +27,15 @@ def get_agent(env,agent_id):
     # Build the actor model
     actor = Sequential()
     actor.add(Flatten(input_shape=(1,observation_size,)))
-    actor.add(Dense(400))
+    actor.add(Dense(1000))
     actor.add(Activation('relu'))
-    actor.add(Dense(300))
+    #actor.add(Dropout(0.2))
+    actor.add(Dense(500))
     actor.add(Activation('relu'))
+    #actor.add(Dropout(0.2))
+    actor.add(Dense(200))
+    actor.add(Activation('relu'))
+    #actor.add(Dropout(0.2))
     actor.add(Dense(nb_actions))
     actor.add(Activation('tanh'))
     #print(actor.summary())
@@ -38,11 +44,16 @@ def get_agent(env,agent_id):
     action_input = Input(shape=(nb_actions,), name='action_input')
     observation_input = Input(shape=(1,observation_size,), name='observation_input')
     flattened_observation = Flatten()(observation_input)
-    x = Dense(400)(flattened_observation)
+    x = Dense(1000)(flattened_observation)
     x = Activation('relu')(x)
+    #x = Dropout(0.2)(x)
     x = Concatenate()([x, action_input])
-    x = Dense(300)(x)
+    x = Dense(500)(x)
     x = Activation('relu')(x)
+    #x = Dropout(0.2)(x)
+    x = Dense(200)(x)
+    x = Activation('relu')(x)
+    #x = Dropout(0.2)(x)
     x = Dense(1)(x)
     x = Activation('linear')(x)
     critic = Model(inputs=[action_input, observation_input], outputs=x)
@@ -52,10 +63,10 @@ def get_agent(env,agent_id):
     memory = SequentialMemory(limit=100000, window_length=1)
     random_process = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0., sigma=.1)
     agent = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
-                      memory=memory, nb_steps_warmup_critic=1000, nb_steps_warmup_actor=1000,
+                      memory=memory, nb_steps_warmup_critic=240, nb_steps_warmup_actor=240,
                       random_process=random_process, gamma=.99, target_model_update=1e-3,
                       processor=MujocoProcessor(agent_id))
-    agent.compile([Adam(lr=1e-4), Adam(lr=1e-3)], metrics=['mae'])
+    agent.compile([Adam(lr=1e-3), Adam(lr=1e-2)], metrics=['mae'])
     return agent
 
 class MujocoProcessor(WhiteningNormalizerProcessor):
@@ -64,8 +75,13 @@ class MujocoProcessor(WhiteningNormalizerProcessor):
         self.agent_id = agent_id
     def process_action(self, action):
         temp = []
-        for a in action:
-            temp.append(int(a))
+        temp.append(int((np.clip(action[0],-1,1)+1)*5))
+        temp.append(int((np.clip(action[1],-1,1)+1)*5))
+        temp.append(int((np.clip(action[2],-1,1)+1)*5))
+        temp.append(int((np.clip(action[3],-1,1)+1)/2))
+        temp.append(int((np.clip(action[4],-1,1)+1)/2))
+        #for a in action:
+        #    temp.append(int(a))
         output = OrderedDict([])
         output['action_movement'] = np.array(temp[0:3])
         output['action_pull'] = np.array(temp[3])

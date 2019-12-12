@@ -12,3 +12,16 @@ def convert_action(a):
         action[k] = np.array(temp)
 
     return action
+
+def random_action():
+    output = OrderedDict([])
+    output['action_movement'] = np.random.randint(0,10+1,3)
+    output['action_pull'] = np.random.randint(0,1+1)
+    output['action_glueall'] = np.random.randint(0,1+1)
+    return output
+def no_action():
+    output = OrderedDict([])
+    output['action_movement'] = np.array([5,5,5])
+    output['action_pull'] = np.array(0)
+    output['action_glueall'] = np.array(0)
+    return output
