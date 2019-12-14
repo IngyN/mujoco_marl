@@ -3,14 +3,17 @@ from collections import OrderedDict
 
 class MWU():
     def __init__(self):
-        self.weights = [[1/11]*11,[1/11]*11,[1/11]*11,[1/2]*2,[1/2]*2]
+        self.weights = [[1]*11,[1]*11,[1]*11,[1]*2,[1]*2]
         self.epsilon = 1e-3
+        self.train = True
     def set_weights(self,new_weights):
         self.weights = new_weights
+    def set_train(self,val):
+        self.train = val
     def sample(self):
         temp = [0]*len(self.weights)
         for i,row in enumerate(self.weights):
-            r = np.random.rand()
+            r = np.random.rand()*sum(row)
             idx = 0
             while r > row[idx]:
                 r-=row[idx]
@@ -22,6 +25,8 @@ class MWU():
         output['action_glueall'] = np.array(temp[4])
         return output
     def backward(self,action,rew):
+        if not self.train:
+            return
         temp = [0]*5
         temp[0] = action['action_movement'][0]
         temp[1] = action['action_movement'][1]
@@ -31,7 +36,4 @@ class MWU():
         cost = (1-rew)/2 # Translate from [-1,1] to [0,1]
         for i,a in enumerate(temp):
             self.weights[i][a] = self.weights[i][a]*(1-self.epsilon*cost)
-            norm = sum(self.weights[i])
-            for j in range(len(self.weights[i])):
-                self.weights[i][j] = self.weights[i][j]/norm
 
